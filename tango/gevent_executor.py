@@ -26,6 +26,7 @@ except:
 
 # Gevent imports
 import gevent.queue
+import gevent.threadpool
 
 # Tango imports
 from .green import AbstractExecutor
@@ -49,18 +50,13 @@ def set_global_executor(executor):
     _EXECUTOR = executor
 
 
-# Patch for gevent threadpool
-
 def get_global_threadpool():
-    """Before gevent-1.1.0, patch the spawn method to propagate exception
-    raised in the loop to the AsyncResult.
-    """
-    threadpool = gevent.get_hub().threadpool
-    if gevent.version_info < (1, 1) and not hasattr(threadpool, '_spawn'):
-        threadpool._spawn = threadpool.spawn
-        threadpool.spawn = types.MethodType(
-            spawn, threadpool, type(threadpool))
-    return threadpool
+    global _THREAD_POOL
+    try:
+        return _THREAD_POOL
+    except NameError:
+        _THREAD_POOL = ThreadPool(10)
+    return _THREAD_POOL
 
 
 class ExceptionWrapper:
@@ -89,14 +85,14 @@ def get_with_exception(result, block=True, timeout=None):
     return result
 
 
-def spawn(threadpool, fn, *args, **kwargs):
-    # The gevent threadpool do not raise exception with async results,
-    # we have to wrap it
-    fn = wrap_errors(fn)
-    result = threadpool._spawn(fn, *args, **kwargs)
-    result._get = result.get
-    result.get = types.MethodType(get_with_exception, result, type(result))
-    return result
+class ThreadPool(gevent.threadpool.ThreadPool):
+
+    def spawn(self, fn, *args, **kwargs):
+        fn = wrap_errors(fn)
+        result = super(ThreadPool, self).spawn(fn, *args, **kwargs)
+        result._get = result.get
+        result.get = types.MethodType(get_with_exception, result, type(result))
+        return result
 
 
 # Gevent task and event loop
