@@ -264,7 +264,10 @@ def test_device_polling_command(tango_test):
     dct = {"SwitchStates": 1000, "DevVoid": 10000, "DumpExecutionState": 5000}
 
     for command, period in dct.items():
+        print(command, period)
+        tango_test.state()
         tango_test.poll_command(command, period)
+        tango_test.state()
 
     ans = tango_test.polling_status()
     for info in ans:
@@ -279,7 +282,10 @@ def test_device_polling_attribute(tango_test):
     dct = {"boolean_scalar": 1000, "double_scalar": 10000, "long_scalar": 5000}
 
     for attr, poll_period in dct.items():
+        print(command, period)
+        tango_test.state()
         tango_test.poll_attribute(attr, poll_period)
+        tango_test.state()
 
     ans = tango_test.polling_status()
     for x in ans:

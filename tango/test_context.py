@@ -172,7 +172,7 @@ class DeviceTestContext(object):
             # because the it might segfault while cleaning up the
             # the tango resources
             if process:
-                time.sleep(0.01)
+                time.sleep(0.1)
 
     def post_init(self):
         try:
